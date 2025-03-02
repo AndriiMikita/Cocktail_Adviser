@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cocktail Assistant</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+
+        .chat-container {
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .chat-messages {
+            height: 500px;
+            overflow-y: auto;
+            margin-bottom: 20px;
+            padding: 10px;
+        }
+
+        .message {
+            margin-bottom: 15px;
+            padding: 10px;
+            border-radius: 8px;
+        }
+
+        .user-message {
+            background-color: #e3f2fd;
+            margin-left: 20%;
+        }
+
+        .assistant-message {
+            background-color: #f5f5f5;
+            margin-right: 20%;
+        }
+
+        .input-container {
+            display: flex;
+            gap: 10px;
+        }
+
+        input {
+            flex-grow: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+
+        button {
+            padding: 10px 20px;
+            background-color: #2196f3;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        button:hover {
+            background-color: #1976d2;
+        }
+
+        button:disabled {
+            background-color: #bdbdbd;
+            cursor: not-allowed;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 10px 0;
+            color: #666;
+        }
+
+        .test-buttons {
+            margin: 20px 0;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .test-buttons button {
+            background: #6c757d;
+            font-size: 14px;
+        }
+        
+        .test-buttons button:hover {
+            background: #5a6268;
+        }
+
+        .test-buttons h4 {
+            width: 100%;
+            margin: 10px 0;
+            color: #666;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <h1>Cocktail Assistant 🍸</h1>
+        <div class="chat-messages" id="chatMessages"></div>
+        <div class="loading" id="loading">Thinking... 🤔</div>
+        <div class="input-container">
+            <input 
+                type="text" 
+                id="userInput" 
+                placeholder="Ask about any cocktail..."
+                onkeypress="if(event.key === 'Enter') sendMessage()"
+            >
+            <button onclick="sendMessage()" id="sendButton">Send</button>
+        </div>
+        <div class="test-buttons">
+            <h3>Test Questions</h3>
+            <div class="button-group">
+                <h4>Knowledge Base Tests:</h4>
+                <button onclick="testQuestion('What are the 5 cocktails containing lemon?')">Lemon Cocktails</button>
+                <button onclick="testQuestion('What are the 5 non-alcoholic cocktails containing sugar?')">Non-Alcoholic Sweet</button>
+                <button onclick="testQuestion('What are my favourite ingredients?')">My Favorites</button>
+                <button onclick="testQuestion('What cocktails can I make with rum and coconut?')">Rum & Coconut</button>
+                <button onclick="testQuestion('Show me some summer cocktails')">Summer Drinks</button>
+                
+                <h4>Advisor Tests:</h4>
+                <button onclick="testQuestion('Recommend 5 cocktails that contain my favourite ingredients')">From Favorites</button>
+                <button onclick="testQuestion('Recommend a cocktail similar to Hot Creamy Bush')">Similar to Hot Creamy Bush</button>
+                <button onclick="testQuestion('What should I drink on a hot summer day?')">Weather Suggestion</button>
+                <button onclick="testQuestion('Recommend a strong cocktail for experienced drinkers')">Strong Drinks</button>
+                <button onclick="testQuestion('What cocktail should I make for a romantic evening?')">Romantic Drinks</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const chatMessages = document.getElementById('chatMessages');
+        const userInput = document.getElementById('userInput');
+        const sendButton = document.getElementById('sendButton');
+        const loading = document.getElementById('loading');
+
+        async function sendMessage() {
+            const message = userInput.value.trim();
+            if (!message) return;
+
+            userInput.disabled = true;
+            sendButton.disabled = true;
+            loading.style.display = 'block';
+
+            addMessage(message, 'user');
+            userInput.value = '';
+
+            try {
+                const response = await fetch('http://127.0.0.1:8000/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'Access-Control-Allow-Origin': '*'
+                    },
+                    body: JSON.stringify({ text: message })
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+                }
+
+                const data = await response.json();
+                console.log('Response:', data);
+                
+                if (data.response) {
+                    addMessage(data.response, 'assistant');
+                } else {
+                    addMessage('Sorry, I encountered an error. Please try again.', 'assistant');
+                }
+            } catch (error) {
+                console.error('Fetch Error:', error);
+                addMessage(`Connection error: ${error.message}. Please make sure the server is running.`, 'assistant');
+            }
+
+            userInput.disabled = false;
+            sendButton.disabled = false;
+            loading.style.display = 'none';
+            userInput.focus();
+        }
+
+        function addMessage(text, sender) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${sender}-message`;
+            messageDiv.textContent = text;
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function testQuestion(question) {
+            userInput.value = question;
+            sendMessage();
+        }
+
+        addMessage('👋 Hi! I\'m your cocktail assistant. Ask me about any cocktail recipe or get recommendations!', 'assistant');
+        addMessage('Try asking:\n• "How do I make a Margarita?"\n• "What cocktails can I make with vodka?"\n• "Recommend me a summer cocktail"', 'assistant');
+    </script>
+</body>
+</html>
