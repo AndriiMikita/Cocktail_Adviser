@@ -27,6 +27,12 @@ An AI-powered cocktail recommendation system that helps users discover and learn
    ```bash
    pip install -r requirements.txt
    ```
+
+4. Create a `.env` file in the root directory with your HuggingFace API key:
+   ```bash
+   HUGGINGFACE_API_KEY=<your_api_key>
+   ```
+
 ## Running the Application
 
 1. Run the server:
